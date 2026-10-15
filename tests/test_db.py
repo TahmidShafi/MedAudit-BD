@@ -27,7 +27,7 @@ def test_database_table_row_counts(db_conn):
         "brands": 14013,
         "products": 21714,
         "price_packs": 23096,
-        "lasa_pairs": 0,
+        "lasa_pairs": 3358,
     }
 
     for table, expected in expected_counts.items():

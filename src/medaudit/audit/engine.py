@@ -15,6 +15,10 @@ from medaudit.audit.release_type import (
 )
 from medaudit.audit.search import resolve_prescribed_item
 from medaudit.config import PROJECT_ROOT
+from medaudit.lasa.tiers import (
+    check_intra_prescription_lasa_hazards,
+    get_lasa_warnings_for_brand,
+)
 
 DEFAULT_DB_PATH = PROJECT_ROOT / "data" / "processed" / "medaudit.db"
 
@@ -39,6 +43,7 @@ def audit_prescription(
     4. Catalog 10x shelf look-alike packaging hazards.
     5. NTI classification and brand substitution locking.
     6. Cheaper same-generic alternative ranking across all items.
+    7. Look-Alike Sound-Alike (LASA) lexical warnings (catalog & intra-prescription).
 
     Returns:
         Structured audit dictionary with overall status, per-check outcomes, and mandatory disclaimer.
@@ -90,12 +95,17 @@ def audit_prescription(
             if sh.get("hazards"):
                 shelf_hazards.extend(sh["hazards"])
 
-        # Step 5: Check NTI and Cheaper Alternatives for each item
+        # Step 5: Check Intra-Prescription LASA Hazards
+        prescribed_bids = [it["brand_id"] for it in resolved_items if it.get("brand_id")]
+        intra_lasa_hazards = check_intra_prescription_lasa_hazards(prescribed_bids, conn)
+
+        # Step 6: Check NTI, Alternatives, and Catalog LASA for each item
         item_audits: List[Dict[str, Any]] = []
         any_nti_flag = False
 
         for it in resolved_items:
             p_id = it["product_id"]
+            b_id = it.get("brand_id")
             generics = it.get("canonical_generics", [])
 
             # Check NTI status
@@ -111,8 +121,12 @@ def audit_prescription(
                 p_id, conn, manufacturer_filter=manufacturer_filter, limit=5
             )
 
+            # Query LASA warnings for brand
+            lasa_warnings = get_lasa_warnings_for_brand(b_id, conn, limit=5) if b_id else []
+
             item_audits.append({
                 "product_id": p_id,
+                "brand_id": b_id,
                 "brand_name": it["brand_name"],
                 "dosage_form": it["dosage_form"],
                 "strength": it["strength"],
@@ -125,6 +139,7 @@ def audit_prescription(
                 "alternatives_count": alt_res.get("alternatives_count", 0),
                 "cheaper_alternatives_count": alt_res.get("cheaper_alternatives_count", 0),
                 "top_alternatives": alt_res.get("alternatives", []),
+                "lasa_warnings": lasa_warnings,
             })
 
         # Collate Overall Status
@@ -133,6 +148,7 @@ def audit_prescription(
             or any(h.get("status") == "FLAG" for h in release_hazards)
             or bool(shelf_hazards)
             or any_nti_flag
+            or bool(intra_lasa_hazards)
         )
         has_unverified = (
             dup_result["status"] == "UNVERIFIED"
@@ -154,6 +170,7 @@ def audit_prescription(
             "duplicate_check": dup_result,
             "intra_prescription_hazards": release_hazards,
             "shelf_lookalike_hazards": shelf_hazards,
+            "intra_prescription_lasa_hazards": intra_lasa_hazards,
             "items": item_audits,
         }
 
