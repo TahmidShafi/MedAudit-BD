@@ -79,3 +79,46 @@ class ParsedStrength(BaseModel):
     def is_valid(self) -> bool:
         """True if all components have non-null amounts."""
         return len(self.components) > 0 and all(c.amount is not None for c in self.components)
+
+
+class PricePack(BaseModel):
+    """Structured representation of a single pharmaceutical packaging and pricing tier."""
+    model_config = ConfigDict(frozen=True)
+
+    product_id: Optional[int] = Field(default=None, description="FK to ProductRecord.product_id if known")
+    container_type: str = Field(
+        description="Packaging container form (e.g. 'pack', 'bottle', 'vial', 'ampoule', 'tube', 'drop', 'spray', 'inhaler', 'cartridge', 'pen', 'sachet', 'container', 'unit_only', 'other')"
+    )
+    volume_or_weight_value: Optional[float] = Field(default=None, description="Parsed numerical volume or weight quantity")
+    volume_or_weight_unit: Optional[str] = Field(default=None, description="Standardized volume or weight unit (ml, gm, mg, l, dose, spray, unit)")
+    pack_qty: Optional[int] = Field(default=None, description="Total discrete delivery units in pack (tablets, capsules, sachets, ampoules, vials)")
+    unit_price_bdt: Optional[float] = Field(default=None, description="Stated or calculated price per single unit in Bangladeshi Taka")
+    pack_price_bdt: Optional[float] = Field(default=None, description="Stated price for entire package in Bangladeshi Taka")
+    normalized_unit_price_bdt: Optional[float] = Field(default=None, description="Standardized comparable unit price in Bangladeshi Taka based on comparison_unit")
+    comparison_unit: str = Field(description="Standardized comparison basis ('per_unit', 'per_ml', 'per_gm', 'per_l', 'per_dose')")
+    residual_band: str = Field(
+        default="SINGLE_PRICE_NO_PACK_CHECK",
+        description="Arithmetic residual classification: 'BAND_1_EXACT', 'BAND_2_ROUNDING_DRIFT', 'BAND_3_HARD_DISCREPANCY', 'SINGLE_PRICE_NO_PACK_CHECK'"
+    )
+    residual_delta: Optional[float] = Field(default=None, description="Absolute residual abs(unit_price * pack_qty - pack_price)")
+    source_span: Optional[str] = Field(default=None, description="Exact raw text segment this pack was parsed from")
+
+
+class ParsedPrice(BaseModel):
+    """Complete parsed price representation for a product SKU containing one or more pack tiers."""
+    model_config = ConfigDict(frozen=True)
+
+    product_id: Optional[int] = Field(default=None, description="FK to ProductRecord.product_id if known")
+    raw_package_container: Optional[str] = Field(default=None, description="Raw package container string")
+    raw_package_size: Optional[str] = Field(default=None, description="Raw package size string")
+    packs: List[PricePack] = Field(default_factory=list, description="Parsed price packs/tiers")
+    anomalies: List[ParseAnomaly] = Field(default_factory=list, description="Any parsing anomalies encountered")
+
+    @property
+    def is_valid(self) -> bool:
+        """True if at least one pack was parsed with a positive normalized unit price."""
+        return len(self.packs) > 0 and all(
+            p.normalized_unit_price_bdt is not None and p.normalized_unit_price_bdt > 0
+            for p in self.packs
+        )
+

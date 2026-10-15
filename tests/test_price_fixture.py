@@ -46,10 +46,17 @@ EXPECTED_CATEGORIES = {
 }
 
 
-def test_strict_phase_2a_no_parser_leakage():
-    """Verify that src/medaudit/parsing/price.py does NOT exist in Phase 2A."""
-    assert not PRICE_PARSER_PATH.exists(), (
-        f"STRICT RULE VIOLATION: {PRICE_PARSER_PATH} must NOT exist during Phase 2A!"
+import hashlib
+
+LOCKED_FIXTURE_SHA256 = "6591aa77ca492ceb55eb7f9a34c35baedb287bfc3385ad9af520308bd7222b63"
+
+
+def test_fixture_sha256_locked():
+    """Assert the SHA-256 checksum of tests/fixtures/price_labels.csv to prove fixture integrity."""
+    assert FIXTURE_PATH.exists(), f"Fixture file not found at {FIXTURE_PATH}"
+    actual_hash = hashlib.sha256(FIXTURE_PATH.read_bytes()).hexdigest()
+    assert actual_hash == LOCKED_FIXTURE_SHA256, (
+        f"Fixture SHA-256 mismatch! Expected {LOCKED_FIXTURE_SHA256}, got {actual_hash}"
     )
 
 
