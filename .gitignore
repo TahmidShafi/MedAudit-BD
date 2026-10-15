@@ -1,0 +1,34 @@
+# Virtual Environment
+.venv/
+env/
+venv/
+
+# Data directories (raw and interim data ignored per brief)
+data/raw/
+data/interim/
+
+# Database files
+*.db
+*.sqlite
+*.sqlite3
+
+# Python bytecode & cache
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+dist/
+build/
+
+# Testing & linting caches
+.pytest_cache/
+.coverage
+htmlcov/
+.ruff_cache/
+.mypy_cache/
+
+# OS / Editor files
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
