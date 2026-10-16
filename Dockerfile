@@ -21,7 +21,8 @@ FROM python:3.11-slim AS runner
 # Set environment variables
 ENV PYTHONUNBUFFERED=1 \
     PYTHONDONTWRITEBYTECODE=1 \
-    PORT=7860
+    PORT=7860 \
+    HF_HOME=/tmp/hf_cache
 
 WORKDIR /app
 
@@ -43,9 +44,10 @@ COPY web/ ./web/
 ENV PYTHONPATH=/app/src
 
 # Pre-bootstrap the database during docker build if network is accessible,
-# or ensure target directory exists for runtime bootstrap
-RUN mkdir -p /app/data/raw /app/data/processed && \
-    (python -m medaudit.db.bootstrap || true)
+# and ensure /app/data and /tmp/hf_cache are writable by non-root UID 1000 (Hugging Face Spaces)
+RUN mkdir -p /app/data/raw /app/data/processed /tmp/hf_cache && \
+    (python -m medaudit.db.bootstrap || true) && \
+    chmod -R 777 /app/data /tmp/hf_cache
 
 # Healthcheck for container orchestrators (supporting dynamic $PORT)
 HEALTHCHECK --interval=30s --timeout=5s --start-period=15s --retries=3 \
