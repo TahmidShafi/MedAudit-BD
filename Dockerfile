@@ -31,22 +31,22 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     curl \
     && rm -rf /var/lib/apt/lists/*
 
-# Copy packaging configuration and install dependencies
+# Copy packaging configuration, application source code, and web UI
 COPY pyproject.toml README.md ./
-RUN pip install --no-cache-dir --upgrade pip && \
-    pip install --no-cache-dir .
-
-# Copy application source code and web UI
 COPY src/ ./src/
 COPY web/ ./web/
+
+# Install in editable mode
+RUN pip install --no-cache-dir --upgrade pip && \
+    pip install --no-cache-dir -e .
 
 # Ensure Python discovers src packages
 ENV PYTHONPATH=/app/src
 
-# Pre-bootstrap the database during docker build if network is accessible,
+# Bootstrap the database during docker build so medaudit.db is baked into the image layer,
 # and ensure /app/data and /tmp/hf_cache are writable by non-root UID 1000 (Hugging Face Spaces)
 RUN mkdir -p /app/data/raw /app/data/processed /tmp/hf_cache && \
-    (python -m medaudit.db.bootstrap || true) && \
+    python -m medaudit.db.bootstrap && \
     chmod -R 777 /app/data /tmp/hf_cache
 
 # Healthcheck for container orchestrators (supporting dynamic $PORT)

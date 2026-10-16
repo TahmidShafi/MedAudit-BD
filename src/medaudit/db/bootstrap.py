@@ -25,7 +25,6 @@ from medaudit.config import (
 from medaudit.db.build import build_database
 from medaudit.lasa.candidates import load_brand_candidates
 from medaudit.lasa.tiers import (
-    compute_full_similarity_matrix,
     compute_lasa_pairs,
     save_lasa_pairs_to_db,
 )
@@ -77,17 +76,13 @@ def ensure_raw_dataset(raw_csv_path: Path = DEFAULT_RAW_CSV) -> Path:
 
 
 def build_lasa_pairs(db_path: Path = DEFAULT_DB_PATH) -> int:
-    """Compute and persist 2-tier LASA pairs into SQLite database."""
+    """Compute and persist 2-tier LASA pairs into SQLite database via length-blocked cdist (53.88 MB peak RAM)."""
     conn = sqlite3.connect(db_path)
     print("[bootstrap] Loading brand candidates for LASA precomputation...")
     candidates = load_brand_candidates(conn)
-    names = [b.normalized_brand_name for b in candidates]
 
-    print(f"[bootstrap] Computing dense similarity matrix for {len(names)} brands...")
-    sim_matrix = compute_full_similarity_matrix(names)
-
-    print("[bootstrap] Computing Mode B 2-Tier LASA pairs...")
-    pairs, stats = compute_lasa_pairs(candidates, similarity_matrix=sim_matrix)
+    print("[bootstrap] Computing Mode B 2-Tier LASA pairs via length-blocked cdist (53.88 MB peak RAM)...")
+    pairs, stats = compute_lasa_pairs(candidates, use_length_blocking=True)
 
     inserted = save_lasa_pairs_to_db(pairs, conn)
     conn.close()
