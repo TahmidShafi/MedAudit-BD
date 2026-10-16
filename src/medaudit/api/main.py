@@ -24,6 +24,9 @@ from medaudit.audit.search import search_products
 from medaudit.config import PROJECT_ROOT
 from medaudit.lasa.tiers import LASA_DISCLAIMER
 
+from contextlib import asynccontextmanager
+from medaudit.db.bootstrap import ensure_database
+
 DEFAULT_DB_PATH = PROJECT_ROOT / "data" / "processed" / "medaudit.db"
 WEB_DIR = PROJECT_ROOT / "web"
 STATUTORY_DISCLAIMER = (
@@ -31,12 +34,21 @@ STATUTORY_DISCLAIMER = (
     "Lexical LASA warnings and same-generic price rankings are not clinically validated."
 )
 
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """Ensure database exists and is populated before accepting traffic."""
+    ensure_database(DEFAULT_DB_PATH)
+    yield
+
+
 app = FastAPI(
     title="MedAudit-BD API",
     version="1.0.0",
     description="Prescription Audit Decision-Support Prototype for Bangladesh",
     docs_url="/docs",
     redoc_url="/redoc",
+    lifespan=lifespan,
 )
 
 app.add_middleware(

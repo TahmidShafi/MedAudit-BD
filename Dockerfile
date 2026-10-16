@@ -2,12 +2,12 @@
 # MedAudit-BD: Production Container Specification
 # ==============================================================================
 # Lightweight, single-stage Dockerfile serving the MedAudit-BD FastAPI backend
-# and static clinical decision-support single-page application at port 8000.
+# and static clinical decision-support single-page application.
 #
-# Free-Tier Deployment Targets:
-# - Render: Web Service -> Environment: Docker -> Free Instance
-# - Fly.io: fly launch --image (or Dockerfile build) -> 256MB/512MB RAM
-# - Hugging Face Spaces: Docker Space -> SDK: Docker -> Port: 8000
+# Cloud Deployment Targets:
+# - Hugging Face Spaces: Docker Space -> Port 7860 (default)
+# - Render: Web Service -> Environment: Docker -> Free Tier ($PORT set dynamically)
+# - Fly.io: fly launch -> 256MB/512MB RAM ($PORT set dynamically)
 #
 # Data Licensing Notice:
 # As recorded in docs/DATA_LICENSE.md, the upstream Hugging Face dataset card
@@ -21,7 +21,7 @@ FROM python:3.11-slim AS runner
 # Set environment variables
 ENV PYTHONUNBUFFERED=1 \
     PYTHONDONTWRITEBYTECODE=1 \
-    PORT=8000
+    PORT=7860
 
 WORKDIR /app
 
@@ -35,20 +35,26 @@ COPY pyproject.toml README.md ./
 RUN pip install --no-cache-dir --upgrade pip && \
     pip install --no-cache-dir .
 
-# Copy application source code, web UI, and precomputed SQLite database
+# Copy application source code and web UI
 COPY src/ ./src/
 COPY web/ ./web/
-COPY data/processed/medaudit.db ./data/processed/medaudit.db
 
 # Ensure Python discovers src packages
 ENV PYTHONPATH=/app/src
 
-# Healthcheck for container orchestrators
-HEALTHCHECK --interval=30s --timeout=5s --start-period=5s --retries=3 \
-    CMD curl -f http://localhost:${PORT}/v1/health || exit 1
+# Pre-bootstrap the database during docker build if network is accessible,
+# or ensure target directory exists for runtime bootstrap
+RUN mkdir -p /app/data/raw /app/data/processed && \
+    (python -m medaudit.db.bootstrap || true)
 
-# Expose service port
+# Healthcheck for container orchestrators (supporting dynamic $PORT)
+HEALTHCHECK --interval=30s --timeout=5s --start-period=15s --retries=3 \
+    CMD curl -f http://localhost:${PORT:-7860}/v1/health || exit 1
+
+# Expose default Hugging Face Spaces port (7860) and standard HTTP port (8000)
+EXPOSE 7860
 EXPOSE 8000
 
-# Run FastAPI via Uvicorn
-CMD ["uvicorn", "medaudit.api.main:app", "--host", "0.0.0.0", "--port", "8000"]
+# Run database bootstrap check if medaudit.db does not exist, then start FastAPI on ${PORT:-7860}
+CMD ["/bin/sh", "-c", "python -m medaudit.db.bootstrap && exec uvicorn medaudit.api.main:app --host 0.0.0.0 --port ${PORT:-7860}"]
+

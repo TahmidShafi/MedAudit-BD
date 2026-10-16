@@ -139,3 +139,20 @@ def test_parse_anomalies_logged(db_conn):
     assert "generic" in modules
     assert "strength" in modules
     assert "price" in modules
+
+
+def test_bootstrap_is_database_complete():
+    """Verify bootstrap module detects complete database and invalid paths."""
+    from medaudit.db.bootstrap import is_database_complete, ensure_database
+    from pathlib import Path
+
+    # Real DB is complete
+    assert is_database_complete(DB_PATH) is True
+
+    # Non-existent DB is not complete
+    dummy_path = Path("data/processed/nonexistent_dummy.db")
+    assert is_database_complete(dummy_path) is False
+
+    # Calling ensure_database on existing complete DB returns path immediately without rebuild
+    assert ensure_database(DB_PATH) == DB_PATH
+
