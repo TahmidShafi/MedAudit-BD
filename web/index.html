@@ -1,0 +1,1044 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MedAudit-BD — Prescription Decision-Support Prototype</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #0b0f19;
+      --card-bg: rgba(22, 30, 49, 0.75);
+      --card-border: rgba(255, 255, 255, 0.08);
+      --card-hover: rgba(30, 41, 67, 0.85);
+      --primary: #4f46e5;
+      --primary-light: #6366f1;
+      --primary-glow: rgba(99, 102, 241, 0.25);
+      --accent: #06b6d4;
+      --text-main: #f1f5f9;
+      --text-muted: #94a3b8;
+      --text-dim: #64748b;
+      --danger: #ef4444;
+      --danger-bg: rgba(239, 68, 68, 0.12);
+      --danger-border: rgba(239, 68, 68, 0.3);
+      --warning: #f59e0b;
+      --warning-bg: rgba(245, 158, 11, 0.12);
+      --warning-border: rgba(245, 158, 11, 0.3);
+      --success: #10b981;
+      --success-bg: rgba(16, 185, 129, 0.12);
+      --success-border: rgba(16, 185, 129, 0.3);
+      --info: #3b82f6;
+      --info-bg: rgba(59, 130, 246, 0.12);
+      --info-border: rgba(59, 130, 246, 0.3);
+      --radius-sm: 6px;
+      --radius-md: 10px;
+      --radius-lg: 16px;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background-color: var(--bg);
+      background-image: 
+        radial-gradient(at 0% 0%, rgba(99, 102, 241, 0.12) 0px, transparent 50%),
+        radial-gradient(at 100% 100%, rgba(6, 182, 212, 0.08) 0px, transparent 50%);
+      color: var(--text-main);
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      line-height: 1.5;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* Top Sticky Disclaimer */
+    .top-banner {
+      background: linear-gradient(90deg, #1e1b4b, #1e293b);
+      border-bottom: 1px solid rgba(99, 102, 241, 0.3);
+      padding: 10px 20px;
+      text-align: center;
+      font-size: 0.82rem;
+      font-weight: 500;
+      color: #c7d2fe;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      backdrop-filter: blur(12px);
+    }
+    .top-banner strong { color: #f43f5e; font-weight: 700; text-transform: uppercase; margin-right: 6px; }
+
+    /* Header */
+    header {
+      padding: 24px 20px;
+      max-width: 1200px;
+      margin: 0 auto;
+      width: 100%;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 1px solid var(--card-border);
+    }
+    .logo-group h1 {
+      font-size: 1.6rem;
+      font-weight: 800;
+      letter-spacing: -0.5px;
+      background: linear-gradient(135deg, #ffffff, #94a3b8);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .logo-group .badge {
+      font-size: 0.7rem;
+      padding: 2px 8px;
+      border-radius: 12px;
+      background: var(--primary-glow);
+      color: #a5b4fc;
+      border: 1px solid rgba(99, 102, 241, 0.4);
+      -webkit-text-fill-color: initial;
+    }
+    .logo-group p { font-size: 0.85rem; color: var(--text-muted); }
+    .header-links a {
+      color: var(--text-muted);
+      text-decoration: none;
+      font-size: 0.85rem;
+      font-weight: 600;
+      padding: 6px 14px;
+      border-radius: var(--radius-sm);
+      border: 1px solid var(--card-border);
+      transition: all 0.2s;
+    }
+    .header-links a:hover {
+      color: #fff;
+      border-color: var(--primary);
+      background: var(--primary-glow);
+    }
+
+    /* Main Container */
+    main {
+      flex: 1;
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 28px 20px 60px;
+      width: 100%;
+    }
+
+    /* Recruiter Quick-Start Section */
+    .demo-section {
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: var(--radius-lg);
+      padding: 20px 24px;
+      margin-bottom: 28px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.25);
+    }
+    .demo-section-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 14px;
+    }
+    .demo-section-header h2 {
+      font-size: 0.95rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      color: var(--accent);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .demo-buttons {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+      gap: 12px;
+    }
+    .demo-btn {
+      background: rgba(30, 41, 59, 0.7);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: var(--radius-md);
+      padding: 12px 16px;
+      cursor: pointer;
+      text-align: left;
+      transition: all 0.2s;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+    .demo-btn:hover {
+      border-color: var(--primary-light);
+      background: rgba(99, 102, 241, 0.12);
+      transform: translateY(-2px);
+      box-shadow: 0 4px 14px var(--primary-glow);
+    }
+    .demo-btn .demo-title {
+      font-weight: 700;
+      font-size: 0.9rem;
+      color: #fff;
+    }
+    .demo-btn .demo-desc {
+      font-size: 0.78rem;
+      color: var(--text-muted);
+    }
+
+    /* Workspace Grid */
+    .workspace-grid {
+      display: grid;
+      grid-template-columns: 420px 1fr;
+      gap: 28px;
+    }
+    @media (max-width: 960px) {
+      .workspace-grid { grid-template-columns: 1fr; }
+    }
+
+    /* Prescription Builder Panel */
+    .builder-panel {
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: var(--radius-lg);
+      padding: 22px;
+      display: flex;
+      flex-direction: column;
+      gap: 18px;
+      height: fit-content;
+    }
+    .panel-title {
+      font-size: 1.1rem;
+      font-weight: 700;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .item-counter {
+      font-size: 0.75rem;
+      padding: 3px 8px;
+      border-radius: 10px;
+      background: rgba(255, 255, 255, 0.08);
+      color: var(--text-muted);
+    }
+
+    /* Search Input & Dropdown */
+    .search-box {
+      position: relative;
+    }
+    .search-input {
+      width: 100%;
+      background: rgba(15, 23, 42, 0.8);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      border-radius: var(--radius-md);
+      padding: 12px 14px;
+      color: #fff;
+      font-size: 0.9rem;
+      outline: none;
+      transition: all 0.2s;
+    }
+    .search-input:focus {
+      border-color: var(--primary-light);
+      box-shadow: 0 0 0 3px var(--primary-glow);
+    }
+    .dropdown {
+      position: absolute;
+      top: 100%;
+      left: 0;
+      right: 0;
+      background: #131b2e;
+      border: 1px solid var(--primary-light);
+      border-radius: var(--radius-md);
+      margin-top: 6px;
+      max-height: 280px;
+      overflow-y: auto;
+      z-index: 50;
+      box-shadow: 0 12px 30px rgba(0,0,0,0.6);
+      display: none;
+    }
+    .dropdown-item {
+      padding: 10px 14px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+    .dropdown-item:hover {
+      background: rgba(99, 102, 241, 0.2);
+    }
+    .dropdown-item .d-brand {
+      font-weight: 700;
+      font-size: 0.88rem;
+      color: #fff;
+      display: flex;
+      justify-content: space-between;
+    }
+    .dropdown-item .d-score {
+      font-size: 0.7rem;
+      color: var(--accent);
+      font-family: 'JetBrains Mono', monospace;
+    }
+    .dropdown-item .d-meta {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+    }
+
+    /* Prescription Items List */
+    .prescribed-list {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      min-height: 140px;
+    }
+    .empty-state {
+      text-align: center;
+      padding: 36px 14px;
+      color: var(--text-dim);
+      font-size: 0.85rem;
+      border: 2px dashed rgba(255, 255, 255, 0.06);
+      border-radius: var(--radius-md);
+    }
+    .rx-item-card {
+      background: rgba(15, 23, 42, 0.6);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: var(--radius-md);
+      padding: 10px 14px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      animation: fadeIn 0.2s ease-in-out;
+    }
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(4px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    .rx-item-info .rx-name {
+      font-weight: 700;
+      font-size: 0.9rem;
+      color: #fff;
+    }
+    .rx-item-info .rx-meta {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+    }
+    .remove-btn {
+      background: transparent;
+      border: none;
+      color: var(--text-dim);
+      cursor: pointer;
+      font-size: 1.1rem;
+      padding: 4px 8px;
+      border-radius: 4px;
+      transition: all 0.15s;
+    }
+    .remove-btn:hover {
+      color: var(--danger);
+      background: var(--danger-bg);
+    }
+
+    /* Filter & Audit Action */
+    .audit-action-box {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      border-top: 1px solid var(--card-border);
+      padding-top: 16px;
+    }
+    .filter-input {
+      width: 100%;
+      background: rgba(15, 23, 42, 0.6);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: var(--radius-sm);
+      padding: 8px 12px;
+      color: #fff;
+      font-size: 0.8rem;
+      outline: none;
+    }
+    .filter-input:focus { border-color: var(--primary); }
+    .audit-btn {
+      background: linear-gradient(135deg, var(--primary), #3b82f6);
+      color: #fff;
+      border: none;
+      border-radius: var(--radius-md);
+      padding: 13px;
+      font-size: 0.95rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.2s;
+      box-shadow: 0 4px 15px var(--primary-glow);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 8px;
+    }
+    .audit-btn:hover:not(:disabled) {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(99, 102, 241, 0.4);
+    }
+    .audit-btn:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    /* Results Panel */
+    .results-panel {
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+    .status-banner {
+      border-radius: var(--radius-lg);
+      padding: 18px 22px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.3);
+      animation: fadeIn 0.3s;
+    }
+    .status-banner.FLAG {
+      background: linear-gradient(135deg, #3f1118, #1e1124);
+      border: 1px solid var(--danger-border);
+    }
+    .status-banner.OK {
+      background: linear-gradient(135deg, #092c22, #0d1b2a);
+      border: 1px solid var(--success-border);
+    }
+    .status-banner.UNVERIFIED {
+      background: linear-gradient(135deg, #3b2a0c, #1a1727);
+      border: 1px solid var(--warning-border);
+    }
+    .status-banner.AMBIGUOUS_OR_UNRESOLVED {
+      background: linear-gradient(135deg, #2b1142, #111a33);
+      border: 1px solid rgba(168, 85, 247, 0.4);
+    }
+    .status-left h3 {
+      font-size: 1.25rem;
+      font-weight: 800;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .status-pill {
+      font-size: 0.72rem;
+      padding: 3px 10px;
+      border-radius: 12px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    .status-pill.FLAG { background: var(--danger); color: #fff; }
+    .status-pill.OK { background: var(--success); color: #fff; }
+    .status-pill.UNVERIFIED { background: var(--warning); color: #000; }
+    .status-pill.AMBIGUOUS { background: #a855f7; color: #fff; }
+
+    /* Check Cards Grid */
+    .checks-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      gap: 12px;
+    }
+    .check-card {
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: var(--radius-md);
+      padding: 12px 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+    .check-card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 0.8rem;
+      font-weight: 600;
+      color: var(--text-muted);
+    }
+    .check-badge {
+      font-size: 0.65rem;
+      font-weight: 700;
+      padding: 2px 6px;
+      border-radius: 4px;
+    }
+    .check-badge.FLAG { background: var(--danger-bg); color: #f87171; border: 1px solid var(--danger-border); }
+    .check-badge.OK { background: var(--success-bg); color: #34d399; border: 1px solid var(--success-border); }
+    .check-badge.UNVERIFIED { background: var(--warning-bg); color: #fbbf24; border: 1px solid var(--warning-border); }
+    .check-badge.AMBIGUOUS { background: rgba(168, 85, 247, 0.15); color: #c084fc; border: 1px solid rgba(168, 85, 247, 0.3); }
+
+    /* Alert Boxes */
+    .alert-box {
+      border-radius: var(--radius-md);
+      padding: 14px 18px;
+      margin-bottom: 12px;
+      font-size: 0.85rem;
+      line-height: 1.45;
+    }
+    .alert-box.hazard {
+      background: var(--danger-bg);
+      border-left: 4px solid var(--danger);
+      color: #fecaca;
+    }
+    .alert-box.hazard strong { color: #fff; }
+    .alert-box.warning {
+      background: var(--warning-bg);
+      border-left: 4px solid var(--warning);
+      color: #fef3c7;
+    }
+    .alert-box.lasa {
+      background: rgba(168, 85, 247, 0.12);
+      border-left: 4px solid #a855f7;
+      color: #f3e8ff;
+    }
+    .diff-highlight {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.82rem;
+      background: rgba(0, 0, 0, 0.4);
+      padding: 2px 6px;
+      border-radius: 4px;
+      color: #fef08a;
+      display: inline-block;
+      margin-top: 4px;
+    }
+
+    /* Item Details Cards */
+    .item-audit-card {
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: var(--radius-lg);
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+    .item-audit-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+      padding-bottom: 12px;
+    }
+    .item-audit-header h4 {
+      font-size: 1.1rem;
+      font-weight: 700;
+      color: #fff;
+    }
+    .item-tags {
+      display: flex;
+      gap: 6px;
+      flex-wrap: wrap;
+    }
+    .tag {
+      font-size: 0.7rem;
+      font-weight: 600;
+      padding: 3px 8px;
+      border-radius: 6px;
+      background: rgba(255, 255, 255, 0.08);
+      color: var(--text-muted);
+    }
+    .tag.nti {
+      background: rgba(239, 68, 68, 0.2);
+      color: #fca5a5;
+      border: 1px solid var(--danger-border);
+    }
+    .tag.locked {
+      background: rgba(245, 158, 11, 0.2);
+      color: #fde68a;
+      border: 1px solid var(--warning-border);
+    }
+
+    /* Alternatives Table */
+    .table-container {
+      overflow-x: auto;
+      margin-top: 6px;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.82rem;
+      text-align: left;
+    }
+    th {
+      background: rgba(15, 23, 42, 0.8);
+      padding: 8px 12px;
+      color: var(--text-muted);
+      font-weight: 600;
+      border-bottom: 1px solid var(--card-border);
+    }
+    td {
+      padding: 10px 12px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+      color: var(--text-main);
+    }
+    tr:hover td {
+      background: rgba(255, 255, 255, 0.02);
+    }
+    .price-bdt {
+      font-family: 'JetBrains Mono', monospace;
+      font-weight: 700;
+      color: #34d399;
+    }
+    .residual-tag {
+      font-size: 0.65rem;
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-weight: 600;
+      background: rgba(255, 255, 255, 0.08);
+    }
+    .residual-tag.band_1_exact { color: #34d399; }
+    .residual-tag.band_2_drift { color: #fbbf24; }
+    .residual-tag.band_3_discrepancy { color: #f87171; }
+
+    /* Footer */
+    footer {
+      border-top: 1px solid var(--card-border);
+      padding: 24px 20px;
+      text-align: center;
+      font-size: 0.78rem;
+      color: var(--text-dim);
+      margin-top: auto;
+    }
+    footer a { color: var(--text-muted); text-decoration: none; }
+    footer a:hover { color: #fff; }
+  </style>
+</head>
+<body>
+
+  <!-- Sticky Top Clinical Safety Banner -->
+  <div class="top-banner">
+    <strong>Decision-Support Prototype:</strong>
+    Not a medical device and not clinical advice. Lexical LASA warnings and same-generic price rankings are not clinically validated.
+  </div>
+
+  <!-- Header -->
+  <header>
+    <div class="logo-group">
+      <h1>MedAudit-BD <span class="badge">v1.0 • Bangladesh</span></h1>
+      <p>Bangladeshi Prescription-Audit Engine • Ingest, Arithmetic Residuals, NTI Locking & 2-Tier LASA</p>
+    </div>
+    <div class="header-links">
+      <a href="/docs" target="_blank">OpenAPI Specs (/docs)</a>
+    </div>
+  </header>
+
+  <!-- Main Container -->
+  <main>
+
+    <!-- Recruiter 3-Click Demo Section -->
+    <section class="demo-section">
+      <div class="demo-section-header">
+        <h2>⚡ One-Click Recruiter Prescriptions (Zero Typing Required)</h2>
+        <span style="font-size: 0.75rem; color: var(--text-dim);">Evaluate all core engines in 5 seconds</span>
+      </div>
+      <div class="demo-buttons">
+        <button class="demo-btn" onclick="loadDemo(1)">
+          <div class="demo-title">Demo 1: Hidden Compound Overlap & Cheaper Brands</div>
+          <div class="demo-desc">Napa (500mg) + Ace Plus (500mg+65mg compound overlap) + Seclo 20mg (finds cheaper alternatives)</div>
+        </button>
+        <button class="demo-btn" onclick="loadDemo(2)">
+          <div class="demo-title">Demo 2: NTI Lock, Release Mismatch & 10x Shelf Hazard</div>
+          <div class="demo-desc">Warin (Warfarin NTI lock) + Napa Extend (XR vs IR kinetics) + Algin (10x shelf look-alike)</div>
+        </button>
+        <button class="demo-btn" onclick="loadDemo(3)">
+          <div class="demo-title">Demo 3: Tier 1 & Tier 2 LASA Collision Showcase</div>
+          <div class="demo-desc">A-Mycin + B-Mycin (cross-mfg collision with character diff preview)</div>
+        </button>
+      </div>
+    </section>
+
+    <!-- Workspace -->
+    <div class="workspace-grid">
+
+      <!-- Left Column: Prescription Builder -->
+      <div class="builder-panel">
+        <div class="panel-title">
+          <span>Active Prescription</span>
+          <span class="item-counter" id="itemCounter">0 / 8 items</span>
+        </div>
+
+        <!-- Live Brand Autocomplete -->
+        <div class="search-box">
+          <input
+            type="text"
+            id="searchInput"
+            class="search-input"
+            placeholder="Type brand name (e.g. Napa, Seclo, Cipro)..."
+            autocomplete="off"
+          />
+          <div id="searchDropdown" class="dropdown"></div>
+        </div>
+
+        <!-- Selected Prescription List -->
+        <div class="prescribed-list" id="prescribedList">
+          <div class="empty-state">
+            No medicines added yet.<br>Click one of the <strong>Demo Prescriptions</strong> above or search to add 2 to 8 items.
+          </div>
+        </div>
+
+        <!-- Audit Action & Filter -->
+        <div class="audit-action-box">
+          <input
+            type="text"
+            id="mfgFilterInput"
+            class="filter-input"
+            placeholder="Optional manufacturer filter (e.g. Square, Beximco)..."
+          />
+          <button id="auditBtn" class="audit-btn" onclick="runAudit()" disabled>
+            <span>Audit Prescription</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Right Column: Audit Results -->
+      <div class="results-panel" id="resultsPanel">
+        <div class="empty-state" style="padding: 60px 20px;">
+          Prescription audit results will appear here after clicking <strong>Audit Prescription</strong>.
+        </div>
+      </div>
+
+    </div>
+
+  </main>
+
+  <!-- Footer -->
+  <footer>
+    <p>
+      <strong>MedAudit-BD</strong> is an open-source clinical decision-support research prototype built over the open Bangladeshi pharmaceutical dataset.
+      All same-generic products are ranked strictly by unit price, never labelled as bioequivalent.
+      <br>
+      Backed by SQLite (14,013 brands, 21,714 SKUs, 3,358 LASA pairs). Verified with 171 automated tests.
+    </p>
+  </footer>
+
+  <script>
+    // Global state
+    let activeItems = [];
+    let searchTimeout = null;
+
+    // Predefined Demo Prescriptions
+    const DEMOS = {
+      1: [
+        { product_id: 10452, brand_name: "Napa", dosage_form: "Tablet", strength: "500 mg", manufacturer: "Beximco Pharmaceuticals Ltd." },
+        { product_id: 10557, brand_name: "Ace Plus", dosage_form: "Tablet", strength: "500 mg + 65 mg", manufacturer: "Square Pharmaceuticals Ltd." },
+        { product_id: 1958, brand_name: "Seclo", dosage_form: "Capsule (Delayed Release)", strength: "20 mg", manufacturer: "Square Pharmaceuticals Ltd." }
+      ],
+      2: [
+        { product_id: 3216, brand_name: "Warin", dosage_form: "Tablet", strength: "5 mg", manufacturer: "Incepta Pharmaceuticals Ltd." },
+        { product_id: 10454, brand_name: "Napa Extend", dosage_form: "Tablet (Extended Release)", strength: "665 mg", manufacturer: "Beximco Pharmaceuticals Ltd." },
+        { product_id: 1430, brand_name: "Algin", dosage_form: "Tablet", strength: "50 mg", manufacturer: "Renata Limited" }
+      ],
+      3: [
+        { product_id: 529, brand_name: "A-Mycin", dosage_form: "Tablet", strength: "500 mg", manufacturer: "Aristopharma Ltd." },
+        { product_id: 12335, brand_name: "B-Mycin", dosage_form: "Tablet", strength: "500 mg", manufacturer: "Gaco Pharmaceuticals Ltd." }
+      ]
+    };
+
+    function loadDemo(demoId) {
+      activeItems = [...DEMOS[demoId]];
+      renderPrescribedList();
+      runAudit();
+    }
+
+    function renderPrescribedList() {
+      const listEl = document.getElementById("prescribedList");
+      const counterEl = document.getElementById("itemCounter");
+      const auditBtn = document.getElementById("auditBtn");
+
+      counterEl.textContent = `${activeItems.length} / 8 items`;
+      auditBtn.disabled = (activeItems.length < 2 || activeItems.length > 8);
+
+      if (activeItems.length === 0) {
+        listEl.innerHTML = `
+          <div class="empty-state">
+            No medicines added yet.<br>Click one of the <strong>Demo Prescriptions</strong> above or search to add 2 to 8 items.
+          </div>
+        `;
+        return;
+      }
+
+      listEl.innerHTML = activeItems.map((item, idx) => `
+        <div class="rx-item-card">
+          <div class="rx-item-info">
+            <div class="rx-name">${item.brand_name}</div>
+            <div class="rx-meta">${item.dosage_form || ""} • ${item.strength || ""} • ${item.manufacturer || ""}</div>
+          </div>
+          <button class="remove-btn" onclick="removeItem(${idx})" title="Remove item">&times;</button>
+        </div>
+      `).join("");
+    }
+
+    function removeItem(index) {
+      activeItems.splice(index, 1);
+      renderPrescribedList();
+    }
+
+    function addItem(item) {
+      if (activeItems.length >= 8) {
+        alert("A prescription audit supports at most 8 items.");
+        return;
+      }
+      activeItems.push(item);
+      renderPrescribedList();
+      document.getElementById("searchInput").value = "";
+      document.getElementById("searchDropdown").style.display = "none";
+    }
+
+    // Live Search Autocomplete
+    const searchInput = document.getElementById("searchInput");
+    const searchDropdown = document.getElementById("searchDropdown");
+
+    searchInput.addEventListener("input", (e) => {
+      const q = e.target.value.trim();
+      clearTimeout(searchTimeout);
+      if (q.length < 2) {
+        searchDropdown.style.display = "none";
+        return;
+      }
+      searchTimeout = setTimeout(async () => {
+        try {
+          const res = await fetch(`/v1/brands/search?q=${encodeURIComponent(q)}&limit=8`);
+          if (!res.ok) return;
+          const items = await res.json();
+          if (items.length === 0) {
+            searchDropdown.innerHTML = `<div class="dropdown-item" style="color:var(--text-dim);">No matching brands found</div>`;
+          } else {
+            searchDropdown.innerHTML = items.map((it) => `
+              <div class="dropdown-item" onclick='addItem(${JSON.stringify(it).replace(/'/g, "&#39;")})'>
+                <div class="d-brand">
+                  <span>${it.brand_name}</span>
+                  <span class="d-score">${it.similarity_score}% match</span>
+                </div>
+                <div class="d-meta">${it.dosage_form} • ${it.strength || "N/A"} • ${it.manufacturer}</div>
+              </div>
+            `).join("");
+          }
+          searchDropdown.style.display = "block";
+        } catch (err) {
+          console.error("Search error", err);
+        }
+      }, 150);
+    });
+
+    document.addEventListener("click", (e) => {
+      if (!searchInput.contains(e.target) && !searchDropdown.contains(e.target)) {
+        searchDropdown.style.display = "none";
+      }
+    });
+
+    // Run Audit
+    async function runAudit() {
+      if (activeItems.length < 2 || activeItems.length > 8) {
+        alert("Please select between 2 and 8 items to audit.");
+        return;
+      }
+
+      const resultsPanel = document.getElementById("resultsPanel");
+      resultsPanel.innerHTML = `
+        <div class="empty-state" style="padding:60px 20px;">
+          Evaluating prescription safety checks, NTI locks, alternative pricing, and LASA collisions...
+        </div>
+      `;
+
+      const mfgFilter = document.getElementById("mfgFilterInput").value.trim();
+      const payload = {
+        items: activeItems.map(it => ({ product_id: it.product_id })),
+        manufacturer_filter: mfgFilter || null
+      };
+
+      try {
+        const res = await fetch("/v1/prescription/audit", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload)
+        });
+
+        if (!res.ok) {
+          const err = await res.json();
+          resultsPanel.innerHTML = `<div class="alert-box hazard"><strong>Audit Error:</strong> ${JSON.stringify(err)}</div>`;
+          return;
+        }
+
+        const data = await res.json();
+        renderAuditResults(data);
+      } catch (err) {
+        resultsPanel.innerHTML = `<div class="alert-box hazard"><strong>Network Error:</strong> Failed to reach audit engine.</div>`;
+      }
+    }
+
+    function renderAuditResults(data) {
+      const panel = document.getElementById("resultsPanel");
+
+      // Status Labels
+      const statusTitleMap = {
+        FLAG: "Hazards or Flags Detected",
+        OK: "All Prescription Checks Clear",
+        UNVERIFIED: "Unverified Components Present",
+        AMBIGUOUS_OR_UNRESOLVED: "Ambiguous Brand Match Needs Resolution"
+      };
+
+      let html = `
+        <!-- Overall Status Banner -->
+        <div class="status-banner ${data.overall_status}">
+          <div class="status-left">
+            <span class="status-pill ${data.overall_status}">${data.overall_status}</span>
+            <h3>${statusTitleMap[data.overall_status] || data.overall_status}</h3>
+          </div>
+          <div style="font-size:0.8rem; color:var(--text-muted);">${data.item_count} items audited</div>
+        </div>
+
+        <!-- 6 Check Badges -->
+        <div class="checks-grid">
+          <div class="check-card">
+            <div class="check-card-header">
+              <span>Duplicate Generics</span>
+              <span class="check-badge ${data.checks.duplicate_generics}">${data.checks.duplicate_generics}</span>
+            </div>
+          </div>
+          <div class="check-card">
+            <div class="check-card-header">
+              <span>Release & 10x Hazards</span>
+              <span class="check-badge ${data.checks.release_and_strength_hazards}">${data.checks.release_and_strength_hazards}</span>
+            </div>
+          </div>
+          <div class="check-card">
+            <div class="check-card-header">
+              <span>NTI Substitution Locks</span>
+              <span class="check-badge ${data.checks.nti_locks}">${data.checks.nti_locks}</span>
+            </div>
+          </div>
+          <div class="check-card">
+            <div class="check-card-header">
+              <span>Cheaper Alternatives</span>
+              <span class="check-badge ${data.checks.alternatives}">${data.checks.alternatives}</span>
+            </div>
+          </div>
+          <div class="check-card">
+            <div class="check-card-header">
+              <span>LASA Lexical Warnings</span>
+              <span class="check-badge ${data.checks.lasa_warnings}">${data.checks.lasa_warnings}</span>
+            </div>
+          </div>
+          <div class="check-card">
+            <div class="check-card-header">
+              <span>SKU Resolution</span>
+              <span class="check-badge ${data.checks.resolution}">${data.checks.resolution}</span>
+            </div>
+          </div>
+        </div>
+      `;
+
+      // Active Ingredient Duplicate Hazards
+      if (data.duplicate_check && data.duplicate_check.duplicates && data.duplicate_check.duplicates.length > 0) {
+        html += data.duplicate_check.duplicates.map(d => `
+          <div class="alert-box hazard">
+            <strong>⚠️ DUPLICATE ACTIVE INGREDIENT: ${d.canonical_generic.toUpperCase()}</strong><br>
+            ${d.explanation}
+          </div>
+        `).join("");
+      }
+
+      // Intra-prescription Release & Strength Hazards
+      if (data.intra_prescription_hazards && data.intra_prescription_hazards.length > 0) {
+        html += data.intra_prescription_hazards.map(h => `
+          <div class="alert-box hazard">
+            <strong>⚠️ ${h.hazard_type.replace(/_/g, " ")}:</strong> ${h.explanation}
+          </div>
+        `).join("");
+      }
+
+      // Shelf Look-Alike Hazards
+      if (data.shelf_lookalike_hazards && data.shelf_lookalike_hazards.length > 0) {
+        html += data.shelf_lookalike_hazards.map(sh => `
+          <div class="alert-box warning">
+            <strong>⚠️ CATALOG 10x SHELF LOOK-ALIKE HAZARD:</strong> ${sh.brand_name} (${sh.prescribed_strength}) has a 10x catalog packaging sibling (${sh.shelf_confused_strength}).
+          </div>
+        `).join("");
+      }
+
+      // Intra-prescription LASA hazards
+      if (data.intra_prescription_lasa_hazards && data.intra_prescription_lasa_hazards.length > 0) {
+        html += data.intra_prescription_lasa_hazards.map(l => `
+          <div class="alert-box lasa">
+            <strong>⚠️ LOOK-ALIKE SOUND-ALIKE REGIMEN WARNING:</strong> Co-prescribing '${l.brand_name_a}' and '${l.brand_name_b}' (${l.tier == 1 ? "Tier 1: Cross-Manufacturer" : "Tier 2: Same-Manufacturer"}, ${Math.round(l.edit_similarity * 100)}% lexical similarity).<br>
+            <span class="diff-highlight">${l.diff_preview}</span>
+          </div>
+        `).join("");
+      }
+
+      // Per-Item Cards
+      if (data.items && data.items.length > 0) {
+        html += `<h3 style="font-size:1.05rem; font-weight:700; margin-top:10px;">Item-by-Item Breakdown & Same-Generic Alternatives</h3>`;
+        html += data.items.map(it => {
+          let altsHtml = "";
+          if (it.substitution_locked) {
+            altsHtml = `<div class="alert-box warning" style="margin-top:10px; margin-bottom:0;"><strong>SUBSTITUTION LOCKED:</strong> Narrow Therapeutic Index active ingredient. Brand switching not recommended without clinical monitoring.</div>`;
+          } else if (it.top_alternatives && it.top_alternatives.length > 0) {
+            altsHtml = `
+              <div class="table-container">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Ranked Same-Generic Brand</th>
+                      <th>Manufacturer</th>
+                      <th>Unit Price</th>
+                      <th>Residual Band</th>
+                      <th>Pack Container</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    ${it.top_alternatives.map(alt => `
+                      <tr>
+                        <td><strong>${alt.brand_name}</strong></td>
+                        <td style="color:var(--text-muted);">${alt.manufacturer}</td>
+                        <td class="price-bdt">৳${alt.normalized_unit_price_bdt.toFixed(2)}</td>
+                        <td><span class="residual-tag ${alt.residual_band}">${alt.residual_band.replace(/_/g, " ")}</span></td>
+                        <td style="color:var(--text-dim);">${alt.container_type} (${alt.pack_qty || 1}s)</td>
+                      </tr>
+                    `).join("")}
+                  </tbody>
+                </table>
+              </div>
+            `;
+          } else {
+            altsHtml = `<div style="font-size:0.8rem; color:var(--text-dim); margin-top:8px;">No cheaper same-generic alternatives found in catalog.</div>`;
+          }
+
+          let lasaHtml = "";
+          if (it.lasa_warnings && it.lasa_warnings.length > 0) {
+            lasaHtml = `
+              <div style="margin-top:12px; border-top:1px solid rgba(255,255,255,0.06); padding-top:10px;">
+                <span style="font-size:0.78rem; font-weight:700; color:#c084fc;">Top Catalog LASA Warnings (Precomputed):</span>
+                <div style="display:flex; flex-direction:column; gap:6px; margin-top:6px;">
+                  ${it.lasa_warnings.slice(0, 3).map(w => `
+                    <div style="font-size:0.78rem; background:rgba(0,0,0,0.25); padding:6px 10px; border-radius:6px; display:flex; justify-content:space-between; align-items:center;">
+                      <div>
+                        <strong>${w.confused_brand_name}</strong> (${w.confused_manufacturer})
+                        <div style="font-size:0.72rem; color:var(--text-dim);">${w.diff_preview}</div>
+                      </div>
+                      <span style="font-family:'JetBrains Mono',monospace; font-size:0.75rem; color:#fef08a;">${Math.round(w.edit_similarity * 100)}%</span>
+                    </div>
+                  `).join("")}
+                </div>
+              </div>
+            `;
+          }
+
+          return `
+            <div class="item-audit-card">
+              <div class="item-audit-header">
+                <div>
+                  <h4>${it.brand_name}</h4>
+                  <div style="font-size:0.78rem; color:var(--text-muted);">${it.dosage_form} • ${it.strength} • Release: ${it.release_type}</div>
+                </div>
+                <div class="item-tags">
+                  ${it.is_nti ? `<span class="tag nti">NTI Drug</span>` : ""}
+                  ${it.substitution_locked ? `<span class="tag locked">Substitution Locked</span>` : ""}
+                  <span class="tag">${it.canonical_generics.join(" + ")}</span>
+                </div>
+              </div>
+              ${altsHtml}
+              ${lasaHtml}
+            </div>
+          `;
+        }).join("");
+      }
+
+      panel.innerHTML = html;
+    }
+  </script>
+</body>
+</html>

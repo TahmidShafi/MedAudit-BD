@@ -23,7 +23,7 @@ def search_products(
     # 1. Exact / Prefix search
     cursor.execute(
         """
-        SELECT p.product_id, p.raw_brand_name, p.dosage_form, p.normalized_strength,
+        SELECT p.product_id, p.brand_id, p.raw_brand_name, p.dosage_form, p.normalized_strength,
                p.manufacturer, p.raw_generic
         FROM products p
         WHERE p.raw_brand_name LIKE ? OR p.slug LIKE ?
@@ -36,11 +36,14 @@ def search_products(
         return [
             {
                 "product_id": r[0],
-                "brand_name": r[1],
-                "dosage_form": r[2],
-                "normalized_strength": r[3],
-                "manufacturer": r[4],
-                "generic": r[5],
+                "brand_id": r[1],
+                "brand_name": r[2],
+                "dosage_form": r[3],
+                "strength": r[4],
+                "normalized_strength": r[4],
+                "manufacturer": r[5],
+                "generic": r[6],
+                "similarity_score": 100.0,
                 "match_score": 100.0,
             }
             for r in direct_rows
@@ -62,7 +65,7 @@ def search_products(
     for brand_matched, score, _ in matches:
         cursor.execute(
             """
-            SELECT p.product_id, p.raw_brand_name, p.dosage_form, p.normalized_strength,
+            SELECT p.product_id, p.brand_id, p.raw_brand_name, p.dosage_form, p.normalized_strength,
                    p.manufacturer, p.raw_generic
             FROM products p
             WHERE p.raw_brand_name = ?
@@ -73,11 +76,14 @@ def search_products(
         for r in cursor.fetchall():
             results.append({
                 "product_id": r[0],
-                "brand_name": r[1],
-                "dosage_form": r[2],
-                "normalized_strength": r[3],
-                "manufacturer": r[4],
-                "generic": r[5],
+                "brand_id": r[1],
+                "brand_name": r[2],
+                "dosage_form": r[3],
+                "strength": r[4],
+                "normalized_strength": r[4],
+                "manufacturer": r[5],
+                "generic": r[6],
+                "similarity_score": round(score, 2),
                 "match_score": round(score, 2),
             })
             if len(results) >= limit:
@@ -156,9 +162,9 @@ def resolve_prescribed_item(
     if isinstance(item_input, dict) and "product_id" in item_input and item_input["product_id"]:
         return resolve_prescribed_item(int(item_input["product_id"]), conn)
 
-    # Case 3: Text query or dict with brand_name
-    query_name = item_input if isinstance(item_input, str) else item_input.get("brand_name", "")
-    desired_form = item_input.get("dosage_form") if isinstance(item_input, dict) else None
+    # Case 3: Text query or dict with brand/brand_name
+    query_name = item_input if isinstance(item_input, str) else (item_input.get("brand_name") or item_input.get("brand") or "")
+    desired_form = (item_input.get("dosage_form") or item_input.get("form")) if isinstance(item_input, dict) else None
     desired_str = item_input.get("strength") if isinstance(item_input, dict) else None
 
     # Query matching products
@@ -191,9 +197,11 @@ def resolve_prescribed_item(
         ]
         return {
             "resolution_status": "AMBIGUOUS",
+            "brand_name": query_name,
             "query": query_name,
             "candidate_count": len(candidates),
             "candidates": candidates,
+            "candidate_skus": candidates,
             "explanation": (
                 f"Brand '{query_name}' matches {len(candidates)} distinct SKU presentations in catalog. "
                 f"Please specify dosage_form, strength, or explicit product_id to resolve."

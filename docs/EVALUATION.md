@@ -122,3 +122,34 @@ Evaluated over all **14,013 deduplicated brand names** (14,013 x 14,013 = 196,36
 1. **Phonetic Canonicalization Scope**: The deterministic phonetic canonicalizer maps Latin-alphabet representations and pharma digraphs (`ph->f`, `ch->k`, silent `h`), but does not model complex regional Bengali dialect phonology (e.g. vowel epenthesis, retroflex flap variants).
 2. **Lexical vs Clinical Risk**: Lexical similarity (even combined with identical generic classification) does not account for route of administration differences (topical vs intravenous) or therapeutic index severity.
 3. **Tall-Man Lettering Disclaimer**: Pairwise character difference strings are purely visual aids and have not been validated in a controlled human-factors hospital setting.
+
+---
+
+## 7. End-to-End Latency, Throughput & Memory Benchmark (Phase 5)
+
+Empirical benchmarks measured over **500 iterations** (`SEED = 42`) on production SQLite database `medaudit.db`:
+
+### In-Process Python Engine Latency (`audit_prescription`)
+
+| Workload | p50 Latency (ms) | p95 Latency (ms) | p99 Latency (ms) | Mean Latency (ms) |
+| :--- | :---: | :---: | :---: | :---: |
+| **Audit (2 items)** | 15.379 ms | 16.340 ms | 19.283 ms | 15.562 ms |
+| **Audit (5 items)** | 28.092 ms | 30.002 ms | 33.424 ms | 28.410 ms |
+| **Audit (8 items)** | 30.443 ms | 31.871 ms | 33.320 ms | 30.657 ms |
+| **Search (/v1/brands/search)** | 1.399 ms | 1.857 ms | 2.174 ms | 1.477 ms |
+| **LASA (/v1/brands/{id}/lasa)** | 0.115 ms | 0.141 ms | 0.182 ms | 0.119 ms |
+
+### End-to-End HTTP Service Latency (via `TestClient` / ASGI Loopback)
+
+| Endpoint / Workload | p50 Latency (ms) | p95 Latency (ms) | p99 Latency (ms) | Mean Latency (ms) |
+| :--- | :---: | :---: | :---: | :---: |
+| **Audit (2 items)** | 18.899 ms | 20.182 ms | 21.057 ms | 19.018 ms |
+| **Audit (5 items)** | 31.146 ms | 32.762 ms | 34.146 ms | 31.349 ms |
+| **Audit (8 items)** | 33.666 ms | 35.544 ms | 39.067 ms | 33.903 ms |
+| **Search (/v1/brands/search)** | 3.459 ms | 4.029 ms | 4.336 ms | 3.513 ms |
+| **LASA (/v1/brands/{id}/lasa)** | 1.782 ms | 2.122 ms | 2.319 ms | 1.975 ms |
+
+### Production Resource Footprint
+
+- **SQLite Database File Size (`medaudit.db`)**: **13.16 MB** (contains all 14,013 brands, 21,714 products, 23,096 price packs, 3,358 LASA pairs, indexes, and full normalized component schemas).
+- **Python Process Resident Memory (RSS)**: **67.82 MB** (lightweight footprint well within free-tier container memory limits of 512 MB).
